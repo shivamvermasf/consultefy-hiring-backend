@@ -9,7 +9,7 @@ dotenv.config(); // Load environment variables from .env file
 const app = express();
 
 // ✅ Middleware
-app.use(cors({ origin: "http://localhost:3000" })); // Enable CORS for React frontend
+app.use(cors({ origin: "http://ec2-13-48-43-6.eu-north-1.compute.amazonaws.com" })); // Enable CORS for React frontend
 app.use(express.json()); // Parse JSON requests
 
 // ✅ Simple Test Route
