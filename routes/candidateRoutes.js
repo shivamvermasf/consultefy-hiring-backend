@@ -27,7 +27,7 @@ router.get('/:id', authenticate, (req, res) => {
 router.post('/', (req, res) => {
     const { name, email, phone, linkedin, skills, experience, expected_salary, resume_link } = req.body;
     db.query(
-        'INSERT INTO candidates (name, email, phone, linkedin, skills, experience, expected_salary, resume_links) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO candidates (name, email, phone, linkedin, skills, experience, expected_salary, resume_link) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
         [name, email, phone, linkedin, JSON.stringify(skills), experience, expected_salary, JSON.stringify([resume_link])],
         (err, result) => {
             if (err) return res.status(500).json({ error: err });

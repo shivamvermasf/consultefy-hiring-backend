@@ -1,40 +1,63 @@
 // Import required modules
-const express = require('express');
-const dotenv = require('dotenv');
-const cors = require('cors');
+const express = require("express");
+const dotenv = require("dotenv");
+const cors = require("cors");
 
-const db = require('./config/db'); // Import DB connection
-dotenv.config(); // Load environment variables from .env file
+dotenv.config(); // Load environment variables
+
+const db = require("./config/db"); // Import DB connection
 
 const app = express();
 
-// ✅ Middleware
-app.use(cors({ origin: "http://ec2-13-48-43-6.eu-north-1.compute.amazonaws.com" })); // Enable CORS for React frontend
+// ✅ Define allowed origins for CORS
+const allowedOrigins = [
+  "http://localhost:3000", // Local frontend
+  process.env.AWS_FRONTEND_URL, // AWS frontend URL (from .env)
+];
+
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV === "development") {
+        callback(null, true);
+      } else {
+        console.error("Blocked by CORS:", origin);
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+  })
+);
+
 app.use(express.json()); // Parse JSON requests
 
-// ✅ Simple Test Route
-app.get('/', (req, res) => {
-    res.send('Freelance Recruiting App Backend is Running!');
+// ✅ Test Route
+app.get("/", (req, res) => {
+  res.send(`🚀 Backend running in ${process.env.NODE_ENV} mode`);
 });
 
 // ✅ Import Routes
-const candidateRoutes = require('./routes/candidateRoutes');
-const jobRoutes = require('./routes/jobRoutes');
-const { authRoutes, authenticate } = require('./routes/authRoutes'); // Import `authenticate`
-const uploadRoutes = require('./routes/uploadRoutes');
-const paymentRoutes = require('./routes/paymentRoutes');
-const escalationRoutes = require('./routes/escalationRoutes');
+const candidateRoutes = require("./routes/candidateRoutes");
+const jobRoutes = require("./routes/jobRoutes");
+const { authRoutes, authenticate } = require("./routes/authRoutes");
+const uploadRoutes = require("./routes/uploadRoutes");
+const paymentRoutes = require("./routes/paymentRoutes");
+const escalationRoutes = require("./routes/escalationRoutes");
+const activityRoutes = require('./routes/activityRoutes');
+// ... other route imports
 
-// ✅ Apply Routes (DO NOT protect `/api/auth`)
-app.use('/api/auth', authRoutes); // 🚨 Login & Register should NOT require authentication
-app.use('/api/upload', uploadRoutes); // File uploads do not need authentication
 
-// ✅ Protect These Routes (Require Authentication)
-app.use('/api/candidates', authenticate, candidateRoutes);
-app.use('/api/jobs', authenticate, jobRoutes);
-app.use('/api/payments', authenticate, paymentRoutes);
-app.use('/api/escalations', authenticate, escalationRoutes);
+// ✅ Apply Routes
+app.use("/api/auth", authRoutes);
+app.use("/api/upload", uploadRoutes);
+app.use("/api/candidates", authenticate, candidateRoutes);
+app.use("/api/jobs", authenticate, jobRoutes);
+app.use("/api/payments", authenticate, paymentRoutes);
+app.use("/api/escalations", authenticate, escalationRoutes);
+app.use('/api/activities', activityRoutes);
 
 // ✅ Start Server
 const PORT = process.env.PORT || 5001;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT} in ${process.env.NODE_ENV} mode`);
+});

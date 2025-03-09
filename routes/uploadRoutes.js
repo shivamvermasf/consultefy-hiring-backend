@@ -45,11 +45,12 @@ router.post('/resume', upload.single('file'), async (req, res) => {
         await s3.send(command);
 
         console.log("✅ File Uploaded Successfully:", fileKey);
+        const fileUrl = `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileKey}`;
 
         res.json({
             success: true,
             message: 'File uploaded successfully',
-            fileUrl: `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileKey}`
+            fileUrl: fileUrl
         });
 
         // Delete the temporary file
