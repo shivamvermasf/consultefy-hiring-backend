@@ -38,12 +38,14 @@ app.get("/", (req, res) => {
 
 // ✅ Import Routes
 const candidateRoutes = require("./routes/candidateRoutes");
-const jobRoutes = require("./routes/jobRoutes");
+const opportunityRoutes = require("./routes/opportunityRoutes");
 const { authRoutes, authenticate } = require("./routes/authRoutes");
 const uploadRoutes = require("./routes/uploadRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
 const escalationRoutes = require("./routes/escalationRoutes");
 const activityRoutes = require('./routes/activityRoutes');
+const certificateRoutes = require('./routes/certificatesRoutes');
+const candidateCertificateRoutes = require('./routes/candidateCertificatesRoutes');
 // ... other route imports
 
 
@@ -51,10 +53,12 @@ const activityRoutes = require('./routes/activityRoutes');
 app.use("/api/auth", authRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/candidates", authenticate, candidateRoutes);
-app.use("/api/jobs", authenticate, jobRoutes);
+app.use("/api/opportunity", authenticate, opportunityRoutes);
 app.use("/api/payments", authenticate, paymentRoutes);
 app.use("/api/escalations", authenticate, escalationRoutes);
 app.use('/api/activities', activityRoutes);
+app.use('/api/certificates', certificateRoutes);
+app.use('/api/candidate-certificates', candidateCertificateRoutes);
 
 // ✅ Start Server
 const PORT = process.env.PORT || 5001;
