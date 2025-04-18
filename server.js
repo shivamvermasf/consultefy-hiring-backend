@@ -43,11 +43,14 @@ const { authRoutes, authenticate } = require("./routes/authRoutes");
 const uploadRoutes = require("./routes/uploadRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
 const escalationRoutes = require("./routes/escalationRoutes");
-const activityRoutes = require('./routes/activityRoutes');
-const certificateRoutes = require('./routes/certificatesRoutes');
-const candidateCertificateRoutes = require('./routes/candidateCertificatesRoutes');
-// ... other route imports
+const activityRoutes = require("./routes/activityRoutes");
+const certificateRoutes = require("./routes/certificatesRoutes");
+const candidateCertificateRoutes = require("./routes/candidateCertificatesRoutes");
+const opportunityCandidateRoutes = require("./routes/opportunityCandidateRoutes");
+const jobRoutes = require('./routes/jobRoutes');
 
+// ✅ Import Admin Routes (for Technologies, Domains, and Skills)
+const adminRoutes = require("./routes/adminRoutes");
 
 // ✅ Apply Routes
 app.use("/api/auth", authRoutes);
@@ -56,9 +59,14 @@ app.use("/api/candidates", authenticate, candidateRoutes);
 app.use("/api/opportunity", authenticate, opportunityRoutes);
 app.use("/api/payments", authenticate, paymentRoutes);
 app.use("/api/escalations", authenticate, escalationRoutes);
-app.use('/api/activities', activityRoutes);
-app.use('/api/certificates', certificateRoutes);
-app.use('/api/candidate-certificates', candidateCertificateRoutes);
+app.use("/api/activities", activityRoutes);
+app.use("/api/certificates", certificateRoutes);
+app.use("/api/candidate-certificates", candidateCertificateRoutes);
+app.use("/api/opportunity-candidates", authenticate, opportunityCandidateRoutes);
+app.use('/api/jobs', jobRoutes);
+
+// ✅ Apply Admin Routes
+app.use("/api/admin", authenticate, adminRoutes);
 
 // ✅ Start Server
 const PORT = process.env.PORT || 5001;
