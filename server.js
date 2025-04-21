@@ -48,6 +48,7 @@ const certificateRoutes = require("./routes/certificatesRoutes");
 const candidateCertificateRoutes = require("./routes/candidateCertificatesRoutes");
 const opportunityCandidateRoutes = require("./routes/opportunityCandidateRoutes");
 const jobRoutes = require('./routes/jobRoutes');
+const attendanceRoutes = require('./routes/attendanceRoutes');
 
 // ✅ Import Admin Routes (for Technologies, Domains, and Skills)
 const adminRoutes = require("./routes/adminRoutes");
@@ -64,6 +65,7 @@ app.use("/api/certificates", certificateRoutes);
 app.use("/api/candidate-certificates", candidateCertificateRoutes);
 app.use("/api/opportunity-candidates", authenticate, opportunityCandidateRoutes);
 app.use('/api/jobs', jobRoutes);
+app.use('/api/attendance', authenticate, attendanceRoutes);
 
 // ✅ Apply Admin Routes
 app.use("/api/admin", authenticate, adminRoutes);

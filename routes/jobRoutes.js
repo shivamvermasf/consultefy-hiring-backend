@@ -213,9 +213,9 @@ router.get('/summary/active', authenticate, (req, res) => {
 });
 
 // Record job attendance with overtime
-router.post('/attendance', authenticate, async (req, res) => {
+router.post('/:id/attendance', authenticate, async (req, res) => {
+    const jobId = req.params.id;
     const {
-        job_id,
         year,
         month,
         regular_days_worked,
@@ -227,6 +227,18 @@ router.post('/attendance', authenticate, async (req, res) => {
     } = req.body;
 
     try {
+        // First verify if job exists
+        const [jobs] = await db.promise().query(
+            'SELECT * FROM jobs WHERE id = ?',
+            [jobId]
+        );
+
+        if (jobs.length === 0) {
+            return res.status(404).json({
+                error: 'Job not found'
+            });
+        }
+
         // Get monthly working days
         const [monthData] = await db.promise().query(
             'SELECT working_days FROM monthly_workdays WHERE year = ? AND month = ?',
@@ -235,13 +247,13 @@ router.post('/attendance', authenticate, async (req, res) => {
 
         if (monthData.length === 0) {
             return res.status(400).json({
-                error: 'Monthly working days not set for this period'
+                error: 'Monthly working days not set for this period. Please initialize the month first.'
             });
         }
 
         if (regular_days_worked > monthData[0].working_days) {
             return res.status(400).json({
-                error: 'Regular days worked cannot exceed total working days in the month'
+                error: `Regular days worked (${regular_days_worked}) cannot exceed total working days in the month (${monthData[0].working_days})`
             });
         }
 
@@ -261,16 +273,30 @@ router.post('/attendance', authenticate, async (req, res) => {
         `;
 
         await db.promise().query(query, [
-            job_id, year, month, regular_days_worked, weekend_days_worked,
+            jobId, year, month, regular_days_worked, weekend_days_worked,
             holiday_days_worked, leaves_taken, overtime_hours, notes
         ]);
 
+        // Get the updated attendance record
+        const [attendance] = await db.promise().query(
+            `SELECT ja.*, mw.working_days as total_working_days
+             FROM job_attendance ja
+             JOIN monthly_workdays mw ON ja.year = mw.year AND ja.month = mw.month
+             WHERE ja.job_id = ? AND ja.year = ? AND ja.month = ?`,
+            [jobId, year, month]
+        );
+
         res.json({
             success: true,
-            message: 'Job attendance recorded successfully'
+            message: 'Job attendance recorded successfully',
+            data: attendance[0]
         });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error('Error recording attendance:', error);
+        res.status(500).json({ 
+            error: error.message,
+            detail: 'An error occurred while recording job attendance'
+        });
     }
 });
 
@@ -511,6 +537,60 @@ router.get('/:id/finance', authenticate, async (req, res) => {
         });
     } catch (error) {
         console.error('Error fetching job finance details:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Initialize current month's working days
+router.post('/monthly/initialize', authenticate, async (req, res) => {
+    try {
+        const now = new Date();
+        const year = req.body.year || now.getFullYear();
+        const month = req.body.month || now.getMonth() + 1;
+
+        // Get the total days in the month
+        const totalDays = new Date(year, month, 0).getDate();
+        
+        // Calculate working days (excluding weekends)
+        let workingDays = 0;
+        for (let day = 1; day <= totalDays; day++) {
+            const date = new Date(year, month - 1, day);
+            if (date.getDay() !== 0 && date.getDay() !== 6) { // 0 = Sunday, 6 = Saturday
+                workingDays++;
+            }
+        }
+
+        // Get holidays for the month
+        const [holidays] = await db.promise().query(
+            'SELECT holiday_date FROM holidays WHERE YEAR(holiday_date) = ? AND MONTH(holiday_date) = ?',
+            [year, month]
+        );
+
+        // Subtract holidays that fall on weekdays
+        workingDays -= holidays.length;
+
+        // Insert or update monthly working days
+        const query = `
+            INSERT INTO monthly_workdays (year, month, total_days, working_days)
+            VALUES (?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE
+            total_days = VALUES(total_days),
+            working_days = VALUES(working_days),
+            updated_at = CURRENT_TIMESTAMP
+        `;
+
+        await db.promise().query(query, [year, month, totalDays, workingDays]);
+
+        res.json({
+            success: true,
+            data: {
+                year,
+                month,
+                total_days: totalDays,
+                working_days: workingDays
+            }
+        });
+    } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
