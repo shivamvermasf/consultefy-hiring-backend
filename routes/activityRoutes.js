@@ -4,6 +4,48 @@ const db = require('../config/db');
 const { authenticate } = require('./authRoutes');
 const router = express.Router();
 
+// GET activities for a specific parent ID
+router.get('/:parentId', authenticate, async (req, res) => {
+  try {
+    const { parentId } = req.params;
+    console.log('Fetching activities for parent ID:', parentId);
+
+    const [results] = await db.promise().query(
+      `SELECT 
+        a.*,
+        COALESCE(u.name, 'System') as user_name 
+       FROM activities a
+       LEFT JOIN users u ON a.user_id = u.id
+       WHERE a.parent_id = ?
+       ORDER BY a.created_at DESC`,
+      [parentId]
+    );
+
+    console.log(`Found ${results.length} activities for parent ID ${parentId}`);
+    res.json(results);
+  } catch (err) {
+    console.error('Error fetching activities:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET recent activities
+router.get('/recent', authenticate, async (req, res) => {
+  try {
+    const [results] = await db.promise().query(
+      `SELECT a.*, u.name as user_name 
+       FROM activities a
+       LEFT JOIN users u ON a.user_id = u.id
+       ORDER BY a.created_at DESC
+       LIMIT 50`
+    );
+    res.json(results);
+  } catch (err) {
+    console.error('Error fetching recent activities:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // GET all activities for a given parent (e.g., Candidate, User, Payment)
 router.get('/parent/:parentType/:parentId', authenticate, (req, res) => {
   const { parentType, parentId } = req.params;
@@ -15,6 +57,44 @@ router.get('/parent/:parentType/:parentId', authenticate, (req, res) => {
       res.json(results);
     }
   );
+});
+
+// GET overdue activities (due date has passed)
+router.get('/overdue', authenticate, async (req, res) => {
+  try {
+    const [results] = await db.promise().query(
+      `SELECT a.*, u.name as user_name 
+       FROM activities a
+       LEFT JOIN users u ON a.user_id = u.id
+       WHERE a.due_date < CURDATE() 
+       AND a.status != 'completed'
+       ORDER BY a.due_date ASC`
+    );
+    res.json(results);
+  } catch (err) {
+    console.error('Error fetching overdue activities:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET upcoming activities (due in next 7 days)
+router.get('/upcoming', authenticate, async (req, res) => {
+  try {
+    console.log('Fetching upcoming activities...');
+    const [results] = await db.promise().query(
+      `SELECT a.*, u.name as user_name 
+       FROM activities a
+       LEFT JOIN users u ON a.user_id = u.id
+       WHERE a.due_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY)
+       AND a.status != 'completed'
+       ORDER BY a.due_date ASC`
+    );
+    console.log(`Found ${results.length} upcoming activities`);
+    res.json(results);
+  } catch (err) {
+    console.error('Error fetching upcoming activities:', err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // POST: Create a new activity for any parent

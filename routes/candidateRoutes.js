@@ -1,12 +1,22 @@
-const { authenticate } = require('./authRoutes');
-
 const express = require('express');
 const db = require('../config/db');
-
 const router = express.Router();
 
+// ✅ Get total count of candidates
+router.get('/count', (req, res) => {
+    console.log('Fetching candidate count...'); // Debug log
+    db.query('SELECT COUNT(*) as total FROM candidates', (err, results) => {
+        if (err) {
+            console.error('Database error:', err);
+            return res.status(500).json({ error: err.message });
+        }
+        console.log('Count results:', results); // Debug log
+        res.json({ total: results[0].total });
+    });
+});
+
 // ✅ Get all candidates
-router.get('/', authenticate, (req, res) => {
+router.get('/', (req, res) => {
     db.query('SELECT * FROM candidates', (err, results) => {
         if (err) return res.status(500).json({ error: err });
         res.json(results);
@@ -14,7 +24,7 @@ router.get('/', authenticate, (req, res) => {
 });
 
 // ✅ Get a single candidate by ID
-router.get('/:id', authenticate, (req, res) => {
+router.get('/:id', (req, res) => {
     const { id } = req.params;
     db.query('SELECT * FROM candidates WHERE id = ?', [id], (err, results) => {
         if (err) return res.status(500).json({ error: err });
@@ -37,7 +47,7 @@ router.post('/', (req, res) => {
 });
 
 // ✅ Update candidate details
-router.put('/:id', authenticate, (req, res) => {
+router.put('/:id', (req, res) => {
     const { id } = req.params;
     const { name, email, phone, linkedin, skills, experience, expected_salary, resume_links } = req.body;
     db.query(
@@ -51,7 +61,7 @@ router.put('/:id', authenticate, (req, res) => {
 });
 
 // ✅ Delete a candidate
-router.delete('/:id', authenticate, (req, res) => {
+router.delete('/:id', (req, res) => {
     const { id } = req.params;
     db.query('DELETE FROM candidates WHERE id = ?', [id], (err, result) => {
         if (err) return res.status(500).json({ error: err });
@@ -59,7 +69,7 @@ router.delete('/:id', authenticate, (req, res) => {
     });
 });
 
-router.post('/match', authenticate, (req, res) => {
+router.post('/match', (req, res) => {
     const { required_skills } = req.body;
 
     if (!required_skills || !Array.isArray(required_skills)) {
@@ -76,6 +86,5 @@ router.post('/match', authenticate, (req, res) => {
         res.json(results);
     });
 });
-
 
 module.exports = router;

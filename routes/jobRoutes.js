@@ -27,27 +27,6 @@ router.get('/', authenticate, (req, res) => {
     });
 });
 
-// Get a specific job with detailed information
-router.get('/:id', authenticate, (req, res) => {
-    db.query(
-        `SELECT 
-            j.*,
-            o.title as opportunity_title,
-            c.name as candidate_name,
-            c.email as candidate_email
-        FROM jobs j 
-        JOIN opportunity o ON j.opportunity_id = o.id 
-        JOIN candidates c ON j.candidate_id = c.id 
-        WHERE j.id = ?`,
-        [req.params.id],
-        (err, results) => {
-            if (err) return res.status(500).json({ error: err });
-            if (results.length === 0) return res.status(404).json({ message: 'Job not found' });
-            res.json(results[0]);
-        }
-    );
-});
-
 // Create a new job
 router.post('/', authenticate, [
     body('opportunity_id').isInt().notEmpty(),
@@ -120,6 +99,27 @@ router.post('/', authenticate, [
                     });
                 }
             );
+        }
+    );
+});
+
+// Get a specific job with detailed information
+router.get('/:id', authenticate, (req, res) => {
+    db.query(
+        `SELECT 
+            j.*,
+            o.title as opportunity_title,
+            c.name as candidate_name,
+            c.email as candidate_email
+        FROM jobs j 
+        JOIN opportunity o ON j.opportunity_id = o.id 
+        JOIN candidates c ON j.candidate_id = c.id 
+        WHERE j.id = ?`,
+        [req.params.id],
+        (err, results) => {
+            if (err) return res.status(500).json({ error: err });
+            if (results.length === 0) return res.status(404).json({ message: 'Job not found' });
+            res.json(results[0]);
         }
     );
 });
@@ -593,6 +593,22 @@ router.post('/monthly/initialize', authenticate, async (req, res) => {
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
+});
+
+// Get count of active jobs
+router.get('/active/count', authenticate, (req, res) => {
+    console.log('Fetching active jobs count...'); // Debug log
+    db.query(
+        'SELECT COUNT(*) as total FROM jobs WHERE status = "active"',
+        (err, results) => {
+            if (err) {
+                console.error('Database error:', err);
+                return res.status(500).json({ error: err.message });
+            }
+            console.log('Count results:', results); // Debug log
+            res.json({ total: results[0].total });
+        }
+    );
 });
 
 module.exports = router;
